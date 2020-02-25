@@ -11,3 +11,7 @@ class Organizations(models.Model, TimeStamp):
     def __str__(self):
         return f"{self.name}"
 
+    class META:
+        verbose_name = "Organization"
+        verbose_name_plural = "Organizations"
+

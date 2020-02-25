@@ -10,3 +10,7 @@ class Notifications(models.Model, TimeStamp):
 
     def __str__(self):
         return f"Notification: {self.id}"
+
+    class META:
+        verbose_name = "Notification"
+        verbose_name_plural = "Notifications"

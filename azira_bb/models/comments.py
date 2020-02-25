@@ -12,3 +12,7 @@ class Comments(models.Model, TimeStamp):
 
     def __str__(self):
         return f"{self.by.user.get_short_name()} on {self.issue.id}"
+
+    class META:
+        verbose_name = "Comment"
+        verbose_name_plural = "Comments"

@@ -8,3 +8,7 @@ class Designations(models.Model, TimeStamp):
 
     def __str__(self):
         return f"{self.title}"
+
+    class META:
+        verbose_name = "Designation"
+        verbose_name_plural = "Designations"

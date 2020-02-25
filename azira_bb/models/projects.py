@@ -12,3 +12,7 @@ class Projects(models.Model, TimeStamp):
 
     def __str__(self):
         return f"{self.name}"
+
+    class META:
+        verbose_name = 'Project'
+        verbose_name_plural = 'Projects'

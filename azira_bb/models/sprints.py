@@ -14,3 +14,7 @@ class Sprints(models.Model, TimeStamp):
 
     def __str__(self):
         return f"{self.name}-{self.project.name} : {self.start_date}-{self.end_date}"
+
+    class META:
+        verbose_name = 'Sprint'
+        verbose_name_plural = 'Sprints'

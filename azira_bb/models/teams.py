@@ -16,3 +16,7 @@ class Teams(models.Model, TimeStamp):
 
     def __str__(self):
         return f"{self.name} ({self.sprint.name}, {self.project.name})"
+
+    class META:
+        verbose_name = "Team"
+        verbose_name_plural = "Teams"

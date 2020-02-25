@@ -11,3 +11,7 @@ class ProjectAccess(models.Model, TimeStamp):
 
     def __str__(self):
         return f"{self.project.name}: {self.owner.user.get_full_name()}"
+
+    class META:
+        verbose_name = 'ProjectAccess'
+        verbose_name_plural = 'ProjectAccess'

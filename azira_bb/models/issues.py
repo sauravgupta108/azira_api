@@ -18,3 +18,7 @@ class Issues(models.Model, TimeStamp):
 
     def __str__(self):
         return f"{self.id}: {self.title} ({self.sprint.name}-{self.project.name})"
+
+    class META:
+        verbose_name = "Issue"
+        verbose_name_plural = "Issues"

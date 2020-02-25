@@ -19,3 +19,7 @@ class Users(models.Model, TimeStamp):
 
     def __str__(self):
         return self.user.get_full_name() if self.user.get_full_name() else f"{self.id}: name_not_set"
+
+    class META:
+        verbose_name = "Az_User"
+        verbose_name_plural = "Az_Users"

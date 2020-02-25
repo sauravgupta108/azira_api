@@ -13,3 +13,6 @@ class SprintFlow(models.Model, TimeStamp):
 
     class META:
         unique_together = (("sprint", "project"),)
+
+        verbose_name = 'SprintFlow'
+        verbose_name_plural = 'SprintFlows'

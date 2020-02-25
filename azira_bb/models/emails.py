@@ -11,3 +11,7 @@ class Emails(models.Model, TimeStamp):
 
     def __str__(self):
         return f"Email: {self.id}"
+
+    class META:
+        verbose_name = "Email"
+        verbose_name_plural = "Emails"
