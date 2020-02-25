@@ -6,7 +6,7 @@ from .users import AzUser
 
 
 class ProjectAccess(models.Model, TimeStamp):
-    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    project = models.OneToOneField(Project, on_delete=models.CASCADE)
     owner = models.ForeignKey(AzUser, on_delete=models.CASCADE)
 
     def __str__(self):

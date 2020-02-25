@@ -1,4 +1,3 @@
-
 # Project status choices
 PROJECT_STATUS_ACTIVE = 1
 PROJECT_STATUS_INACTIVE = 2
