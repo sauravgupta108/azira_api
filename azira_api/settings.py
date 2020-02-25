@@ -113,6 +113,8 @@ USE_L10N = True
 
 USE_TZ = True
 
+LOG_PATH = "/home/mohanu/azira/logs/azira_api.log"
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
@@ -134,6 +136,7 @@ LOGGING = {
         },
         'file': {
             'class': 'logging.FileHandler',
+            'filename': LOG_PATH,
             'formatter': 'general'
         }
     },
