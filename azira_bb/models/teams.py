@@ -8,9 +8,9 @@ from .users import Users
 
 class Teams(models.Model, TimeStamp):
     name = models.CharField(max_length=80)
-    members = models.ManyToManyField(Users)
-    lead = models.ForeignKey(Users, on_delete=models.CASCADE)
-    manager = models.ForeignKey(Users, on_delete=models.CASCADE)
+    members = models.ManyToManyField(Users, related_name="team_member")
+    lead = models.ForeignKey(Users, on_delete=models.CASCADE, related_name="team_lead")
+    manager = models.ForeignKey(Users, on_delete=models.CASCADE, related_name="project_manager")
     sprint = models.ForeignKey(Sprints, on_delete=models.CASCADE)
     project = models.ForeignKey(Projects, on_delete=models.CASCADE)
 

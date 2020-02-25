@@ -3,5 +3,5 @@ from azira_bb import api_views
 
 
 urlpatterns = [
-    path(),
+    # path(),
 ]
