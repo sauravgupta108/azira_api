@@ -1,11 +1,11 @@
 from django.db import models
 
 from .utils import TimeStamp
-from .users import Users
+from .users import AzUser
 
 
-class Notifications(models.Model, TimeStamp):
-    to = models.ManyToManyField(Users)
+class Notification(models.Model, TimeStamp):
+    to = models.ManyToManyField(AzUser)
     content = models.CharField(max_length=500)
 
     def __str__(self):

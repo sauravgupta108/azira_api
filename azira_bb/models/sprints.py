@@ -1,13 +1,13 @@
 from django.db import models
 
 from .utils import TimeStamp
-from .projects import Projects
+from .projects import Project
 from azira_bb.utils import options
 
 
-class Sprints(models.Model, TimeStamp):
+class Sprint(models.Model, TimeStamp):
     name = models.CharField(max_length=50)
-    project = models.ForeignKey(Projects, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
     status = models.SmallIntegerField(choices=options.SPRINT_STATUSES, default=options.SPRINT_STATUS_INACTIVE)
     start_date = models.DateField()
     end_date = models.DateField()

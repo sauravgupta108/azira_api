@@ -1,11 +1,11 @@
 from django.db import models
 
 from .utils import TimeStamp
-from .users import Users
+from .users import AzUser
 
 
-class Emails(models.Model, TimeStamp):
-    to = models.ManyToManyField(Users)
+class Email(models.Model, TimeStamp):
+    to = models.ManyToManyField(AzUser)
     subject = models.CharField(max_length=128)
     body = models.TextField()
 
