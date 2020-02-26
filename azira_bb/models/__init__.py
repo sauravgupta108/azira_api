@@ -11,3 +11,4 @@ from .sprints import Sprint
 from .teams import Team
 from .users import AzUser
 from .utils import TimeStamp
+from .logs import ProjectLog, SprintLog, IssueLog, ActivityLog

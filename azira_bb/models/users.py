@@ -9,10 +9,11 @@ from .designations import Designation
 class AzUser(models.Model, TimeStamp):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=30)
-    hobbies = models.CharField(max_length=100)
+    hobbies = models.CharField(max_length=100, blank=True, null=True)
     city = models.CharField(max_length=50, blank=True, null=True)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, blank=True, null=True)
     designation = models.ForeignKey(Designation, on_delete=models.CASCADE)
+    is_admin = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['email']

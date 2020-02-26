@@ -75,7 +75,7 @@ WSGI_APPLICATION = 'azira_api.wsgi.application'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
-    ],
+    ]
 }
 
 DATABASES = {
