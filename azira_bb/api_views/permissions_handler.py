@@ -49,6 +49,9 @@ class PermissionHandler:
             return None
         return team
 
+    def get_az_user(self):
+        return self.user
+
     def is_super_user(self):
         if self.user and self.user.is_admin:
             return True

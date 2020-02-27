@@ -2,6 +2,7 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.authtoken.models import Token
 from django.db import transaction
 from django.contrib.auth.models import User
 
@@ -66,6 +67,9 @@ class Users(ModelViewSet):
                 new_az_user = self._set_optional_details(request, new_az_user)
                 new_az_user.save()
 
+                helper.log_activity(request, f"New user created. ID: {new_az_user.id}, "
+                                             f"Name: {new_az_user.user.get_full_name()}")
+
                 return Response(serialize.SerializeAzUser(new_az_user), status=status.HTTP_201_CREATED)
 
         except Exception as error:
@@ -77,13 +81,58 @@ class Users(ModelViewSet):
         if request_validity != "OK":
             return request_validity
 
-        # TODO: Pending....!!!
+        self.queryset = self.queryset.filter(*args, **kwargs)
+        if self.queryset.count() != 1:
+            return Response({"msg": "Invalid user ID"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_to_update = self.queryset[0]
+
+        try:
+            with transaction.atomic():
+                user_to_update.user.first_name = request.data["first_name"]
+                user_to_update.user.last_name = request.data["last_name"]
+                user_to_update.user.save()
+
+                user_to_update.title = request.data["title"]
+                user_to_update = self._set_optional_details(request, user_to_update)
+
+                user_to_update.save()
+
+                helper.log_activity(request, f"User updated. ID: {user_to_update.id}, "
+                                             f"Name: {user_to_update.user.get_full_name()}")
+
+                return Response(serialize.SerializeAzUser(user_to_update), status=status.HTTP_200_OK)
+
+        except Exception as error:
+            return Response({"msg": f"Internal Error {str(error)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update(self, request, *args, **kwargs):
         if not PermissionHandler(request.user.id).is_super_user():
             return Response({"msg": "Not Authorized"}, status=status.HTTP_403_FORBIDDEN)
 
         return Response({"msg": "Not Implemented"}, status=status.HTTP_501_NOT_IMPLEMENTED)
+
+    def destroy(self, request, *args, **kwargs):
+        if not PermissionHandler(request.user.id).is_super_user():
+            return Response({"msg": "Not Authorized"}, status=status.HTTP_403_FORBIDDEN)
+
+        az_user_to_destroy = self.queryset.filter(*args, **kwargs)
+        if az_user_to_destroy.count() != 1:
+            return Response({"msg": "Invalid user ID"}, status=status.HTTP_400_BAD_REQUEST)
+
+        Token.objects.get(user=az_user_to_destroy.user).delete()
+
+        az_user_to_destroy = az_user_to_destroy[0]
+        user_id = az_user_to_destroy.id
+        user_name = az_user_to_destroy.user.get_full_name()
+
+        az_user_to_destroy.user.delete()
+        az_user_to_destroy.delete()
+
+        helper.log_activity(request, f"User deleted. ID: {user_id}, "
+                                     f"Name: {user_name}")
+
+        return Response({"msg": f"Deleted User with ID <{user_id}>"}, status=status.HTTP_204_NO_CONTENT)
 
     @staticmethod
     def _validate_user_request(request):

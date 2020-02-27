@@ -7,6 +7,7 @@ from azira_bb.api_views import PermissionHandler
 from azira_bb import models as az_model
 
 from azira_bb import api_serializers as serialize
+from azira_bb.utils import etc_helper as helper
 
 
 class Designation(ModelViewSet):
@@ -43,6 +44,7 @@ class Designation(ModelViewSet):
             return validity
 
         new_designation = az_model.Designation.objects.create(title=request.data["designation_name"])
+        helper.log_activity(request, f"New Designation ({new_designation.title}) added")
 
         return Response(serialize.SerializeDesignation(new_designation).data,
                         status=status.HTTP_201_CREATED)
@@ -59,8 +61,12 @@ class Designation(ModelViewSet):
             return Response({"msg": "Invalid designation"}, status=status.HTTP_400_BAD_REQUEST)
 
         designation_to_update = self.queryset[0]
+        older_title = designation_to_update.title
+
         designation_to_update.title = request.data["designation_name"]
         designation_to_update.save()
+
+        helper.log_activity(request, f"Designation title changed from {older_title} to {designation_to_update.title}")
 
         return Response(serialize.SerializeDesignation(designation_to_update).data,
                         status=status.HTTP_200_OK)
@@ -77,7 +83,11 @@ class Designation(ModelViewSet):
         if self.queryset.count != 1:
             return Response({"msg": "Invalid designation"}, status=status.HTTP_400_BAD_REQUEST)
 
+        designation_name = self.queryset[0].title
         self.queryset[0].delete()
+
+        helper.log_activity(request, f"Designation {designation_name} deleted")
+
         return Response({"msg": "Record deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
     @staticmethod
