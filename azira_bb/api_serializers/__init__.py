@@ -6,3 +6,6 @@ from .serialize_designation import SerializeDesignation
 
 from .serialize_organization import SerializeOrganizationMicro
 from .serialize_organization import SerializeOrganization
+
+from .serialize_project import SerializeProjectConcise
+from .serialize_sprint import SerializeSprintMini

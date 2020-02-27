@@ -7,6 +7,7 @@ routers = SimpleRouter()
 routers.register("designation", api_views.Designation)
 routers.register("organization", api_views.Organization)
 routers.register("user", api_views.Users)
+routers.register("project", api_views.Project)
 
 urlpatterns = [
     path("get_token/", api_views.AziraLogin.as_view(), name="get_token"),

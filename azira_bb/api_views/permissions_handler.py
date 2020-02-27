@@ -1,5 +1,5 @@
 from azira_bb import models
-from azira_bb.utils.etc_helper import log_message
+from azira_bb.utils import etc_helper as helper
 
 
 class PermissionHandler:
@@ -8,9 +8,9 @@ class PermissionHandler:
         try:
             self.user = models.AzUser.objects.get(user_id=user_id)
         except (models.AzUser.DoesNotExist, models.AzUser.MultipleObjectsReturned):
-            log_message(f"Invalid user_id <{user_id}>", log_type="error")
+            helper.log_message(f"Invalid user_id <{user_id}>", log_type="error")
 
-    def can_create_project(self):
+    def can_create_or_update_project(self):
         return True if self.is_super_user() else False
 
     def can_create_sprint(self, project_id):
@@ -32,7 +32,7 @@ class PermissionHandler:
         try:
             issue = models.Issue.objects.get(id=issue_id)
         except (models.Issue.DoesNotExist, models.Issue.MultipleObjectsReturned):
-            log_message(f"Invalid issue id <{issue_id}>", log_type="error")
+            helper.log_message(f"Invalid issue id <{issue_id}>", log_type="error")
             return False
         team = self.get_team(issue.sprint_id)
         if not team:
@@ -45,7 +45,7 @@ class PermissionHandler:
         try:
             team = models.Team.objects.get(sprint_id=sprint_id)
         except (models.Team.DoesNotExist, models.Team.MultipleObjectsReturned):
-            log_message(f"Invalid sprint id <{sprint_id}>", log_type="error")
+            helper.log_message(f"Invalid sprint id <{sprint_id}>", log_type="error")
             return None
         return team
 
@@ -63,7 +63,7 @@ class PermissionHandler:
             if self.user and (self.user.id == project_owner.user.id):
                 return True
         except (models.ProjectAccess.DoesNotExist, models.ProjectAccess.MultipleObjectsReturned):
-            log_message(f"Invalid project id <{project_id}>", log_type="error")
+            helper.log_message(f"Invalid project id <{project_id}>", log_type="error")
             return False
         return False
 

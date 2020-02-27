@@ -2,7 +2,6 @@ import logging
 import re
 
 from azira_bb import models as az_mdl
-from azira_bb.api_views import PermissionHandler
 
 
 def log_message(log_msg, log_type="info"):
@@ -44,6 +43,7 @@ def is_valid_email_address(email_address):
 
 def log_activity(request=None, activity=None):
     assert isinstance(activity, str)
+    from azira_bb.api_views import PermissionHandler
 
     activist = PermissionHandler(request.user.id).get_az_user()
     if not activist:
