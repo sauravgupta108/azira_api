@@ -12,4 +12,5 @@ routers.register("project", api_views.Project)
 urlpatterns = [
     path("get_token/", api_views.AziraLogin.as_view(), name="get_token"),
     path("", include(routers.urls)),
+    path("project_access/", api_views.ProjectAccess.as_view(), name="project_access")
 ]

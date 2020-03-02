@@ -12,6 +12,12 @@ class UserSerializer(ModelSerializer):
         fields = ["first_name", "last_name", "username", "email"]
 
 
+class UserSerializerMicro(ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["first_name", "last_name", "email"]
+
+
 class SerializeLoggedInUser(ModelSerializer):
     user = UserSerializer()
     designation = SerializeDesignationMicro()
@@ -30,3 +36,11 @@ class SerializeAzUser(ModelSerializer):
     class Meta:
         model = az_models.AzUser
         fields = ["id", "user", "title", "designation", "organization"]
+
+
+class SerializeUserProjectAccess(ModelSerializer):
+    user = UserSerializerMicro()
+
+    class Meta:
+        model = az_models.AzUser
+        fields = ["id", "user"]

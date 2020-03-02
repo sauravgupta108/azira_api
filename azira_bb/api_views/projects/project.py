@@ -1,4 +1,5 @@
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -16,13 +17,8 @@ def get_project_details(request, project_id):
         if not request.user.id:
             return None
 
-        project_details = dict()
-
         project = az_models.Project.objects.get(id=int(project_id))
-        project_details["project"] = serialize.SerializeProjectConcise(project).data
-
-        project_sprints = az_models.Sprint.objects.filter(project_id=project.id)
-        project_details["sprints"] = serialize.SerializeSprintMini(project_sprints, many=True).data
+        project_details = serialize.SerializeProjectDetailed(project)
 
         return project_details
 
@@ -185,3 +181,49 @@ class Project(ModelViewSet):
             if not end_date:
                 raise ValueError("Invalid end date format. Valid format is YYYY-MM-DD")
         return start_date, end_date
+
+
+class ProjectAccess(APIView):
+    @staticmethod
+    def get(request):
+        if not PermissionHandler(request.user.id).is_super_user():
+            return Response({"msg": "Not Authorized"}, status=status.HTTP_403_FORBIDDEN)
+
+        all_projects = az_models.Project.objects.all()
+        serialized_projects = serialize.SerializeProjectMicro(all_projects, many=True).data
+
+        all_users = az_models.AzUser.objects.filter(designation__title="Project Manager")
+        serialized_users = serialize.SerializeUserProjectAccess(all_users, many=True).data
+
+        response = {"projects": serialized_projects, "users": serialized_users}
+
+        return Response(response, status=status.HTTP_200_OK)
+
+    @staticmethod
+    def post(request):
+        if not PermissionHandler(request.user.id).is_super_user():
+            return Response({"msg": "Not Authorized"}, status=status.HTTP_403_FORBIDDEN)
+
+        if "project" not in request.data:
+            return Response({"msg": "Project is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if "user" not in request.data:
+            return Response({"msg": "User is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            project = az_models.Project.objects.get(id=int(request.data["project"]))
+        except (ValueError, az_models.Project.DoesNotExist, az_models.Project.MultipleObjectsReturned):
+            return Response({"msg": "Invalid project"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            owner = az_models.AzUser.objects.get(id=int(request.data["user"]),
+                                                 designation__title="Project Manager")
+        except (ValueError, az_models.AzUser.DoesNotExist, az_models.AzUser.MultipleObjectsReturned):
+            return Response({"msg": "Invalid project"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            new_project_access = az_models.ProjectAccess.objects.create(project=project, owner=owner)
+            return Response(serialize.SerializeUserProjectAccess(new_project_access),
+                            status=status.HTTP_201_CREATED)
+        except Exception as error:
+            return Response({"msg": f"Internal Error ({str(error)})"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

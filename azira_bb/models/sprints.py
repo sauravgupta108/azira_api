@@ -12,6 +12,10 @@ class Sprint(models.Model, TimeStamp):
     start_date = models.DateField()
     end_date = models.DateField()
 
+    def get_teams(self):
+        from azira_bb.models import Team
+        return Team.objects.filter(sprint_id=self.id)
+
     def __str__(self):
         return f"{self.name}-{self.project.name} : {self.start_date}-{self.end_date}"
 
