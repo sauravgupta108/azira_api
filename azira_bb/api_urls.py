@@ -8,11 +8,11 @@ routers.register("designation", api_views.Designation)
 routers.register("organization", api_views.Organization)
 routers.register("user", api_views.Users)
 routers.register("project", api_views.Project)
-routers.register("new_team", api_views.NewTeam)
 routers.register("team", api_views.TeamSet)
 
 urlpatterns = [
-    path("get_token/", api_views.AziraLogin.as_view(), name="get_token"),
+    path("get-token/", api_views.AziraLogin.as_view(), name="get_token"),
     path("", include(routers.urls)),
-    path("project_access/", api_views.ProjectAccess.as_view(), name="project_access")
+    path("project-access/", api_views.ProjectAccess.as_view(), name="project_access"),
+    path("new-team/", api_views.NewTeam.as_view(), name="new_team")
 ]

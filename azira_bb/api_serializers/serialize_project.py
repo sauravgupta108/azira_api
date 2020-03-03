@@ -3,7 +3,6 @@ from rest_framework import serializers
 from azira_bb import models as az_model
 from .serialize_users import SerializeUserProjectAccess
 from .serialize_sprint import SerializeSprintMini
-from .serialize_team import SerializeTeamMicro
 
 
 class SerializeProjectConcise(serializers.ModelSerializer):
@@ -19,6 +18,7 @@ class SerializeProjectMicro(serializers.ModelSerializer):
 
 
 class SerializeProjectDetailed(serializers.ModelSerializer):
+    from .serialize_team import SerializeTeamMicro
     owner = SerializeUserProjectAccess(source="get_project_owner")
     sprints = SerializeSprintMini(source="get_sprints", many=True)
     teams = SerializeTeamMicro(source="get_teams", many=True)

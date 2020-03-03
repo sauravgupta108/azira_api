@@ -1,5 +1,4 @@
 from rest_framework.serializers import ModelSerializer
-from rest_framework import serializers
 
 from azira_bb import models
 from .serialize_project import SerializeProjectMicro
