@@ -59,3 +59,18 @@ class PermissionHandler:
         except (models.Team.DoesNotExist, models.Team.MultipleObjectsReturned, ValueError):
             helper.log_message(f"Invalid team id <{self.user.id}>", log_type="error")
             return False
+
+    def can_create_team(self, project_id):
+        try:
+            project = models.Project.objects.get(id=int(project_id))
+            return self.user and project.get_project_owner().user.id == self.user.id
+        except (ValueError, models.Project.DoesNotExist, models.Project.MultipleObjectsReturned):
+            helper.log_message(f"Invalid project id <{project_id}>", log_type="error")
+            return False
+
+    def can_modify_team(self, team_id):
+        return self.is_team_member(team_id)
+
+    def can_view_team(self, team_id):
+        return self.is_super_user() or self.is_team_member(team_id) or self.is_team_manager(team_id) or \
+               self.is_team_lead(team_id)

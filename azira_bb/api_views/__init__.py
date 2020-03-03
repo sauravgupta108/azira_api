@@ -5,3 +5,4 @@ from .designations.designation import Designation
 from .organizations.organization import Organization
 from .projects.project import Project
 from .projects.project import ProjectAccess
+from .teams.team import NewTeam, TeamSet

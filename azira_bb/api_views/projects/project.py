@@ -10,6 +10,7 @@ from azira_bb import models as az_models
 from azira_bb import api_serializers as serialize
 from azira_bb.utils import etc_helper as helper
 from azira_bb.api_views import PermissionHandler
+from azira_bb.utils import options
 
 
 def get_project_details(request, project_id):
@@ -192,7 +193,7 @@ class ProjectAccess(APIView):
         all_projects = az_models.Project.objects.all()
         serialized_projects = serialize.SerializeProjectMicro(all_projects, many=True).data
 
-        all_users = az_models.AzUser.objects.filter(designation__title="Project Manager")
+        all_users = az_models.AzUser.objects.filter(designation__code=options.TEAM_MANAGER)
         serialized_users = serialize.SerializeUserProjectAccess(all_users, many=True).data
 
         response = {"projects": serialized_projects, "users": serialized_users}
@@ -217,7 +218,7 @@ class ProjectAccess(APIView):
 
         try:
             owner = az_models.AzUser.objects.get(id=int(request.data["user"]),
-                                                 designation__title="Project Manager")
+                                                 designation__code=options.TEAM_MANAGER)
         except (ValueError, az_models.AzUser.DoesNotExist, az_models.AzUser.MultipleObjectsReturned):
             return Response({"msg": "Invalid project"}, status=status.HTTP_400_BAD_REQUEST)
 
