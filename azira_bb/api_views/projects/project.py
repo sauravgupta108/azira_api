@@ -11,6 +11,7 @@ from azira_bb import api_serializers as serialize
 from azira_bb.utils import etc_helper as helper
 from azira_bb.api_views import PermissionHandler
 from azira_bb.utils import options
+from azira_bb.utils import loggers as logs
 
 
 def get_project_details(request, project_id):
@@ -24,10 +25,10 @@ def get_project_details(request, project_id):
         return project_details
 
     except (az_models.Project.DoesNotExist, az_models.Project.MultipleObjectsReturned, ValueError):
-        helper.log_message("Invalid project ID", "error")
+        logs.project_logger().error("Invalid project ID", exc_info=True)
         return None
     except AttributeError:
-        helper.log_message("Invalid request", "error")
+        logs.project_logger().error("Invalid request", exc_info=True)
         return None
 
 
@@ -43,8 +44,15 @@ class Project(ModelViewSet):
         if self.queryset.count() == 0:
             return Response({"msg": "No projects found"}, status=status.HTTP_204_NO_CONTENT)
 
-        return Response(serialize.SerializeProjectConcise(self.queryset).data,
-                        status=status.HTTP_200_OK)
+        try:
+            logs.project_logger().info(f"{helper.get_user_info(request)} | Project's List")
+
+            return Response(serialize.SerializeProjectConcise(self.queryset).data,
+                            status=status.HTTP_200_OK)
+        except Exception as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
+            return Response({"msg": f"Internal Server Error {str(error)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def retrieve(self, request, *args, **kwargs):
         if not PermissionHandler(request.user.id).is_super_user():
@@ -54,7 +62,15 @@ class Project(ModelViewSet):
         if not project_details:
             return Response({"msg": "Invalid project ID"}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(project_details, status=status.HTTP_200_OK)
+        try:
+            logs.project_logger().info(f"{helper.get_user_info(request)} | Project | {project_details['id']} "
+                                       f"| {project_details['name']}")
+
+            return Response(project_details, status=status.HTTP_200_OK)
+        except Exception as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
+            return Response({"msg": f"Internal Server Error {str(error)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def create(self, request, *args, **kwargs):
         request_validity = self._validate_project_request(request)
@@ -79,13 +95,18 @@ class Project(ModelViewSet):
 
                 helper.log_activity(request, f"New project '{new_project.name}' created")
 
+                logs.project_logger().info(f"{helper.get_user_info(request)} | Project | {new_project.id} "
+                                           f"| {new_project.name} created")
+
                 return Response(get_project_details(request, new_project.id),
                                 status=status.HTTP_201_CREATED)
 
         except ValueError as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
             return Response({"msg": f"Internal Error ({str(error)})"}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
             return Response({"msg": f"Internal Error ({str(error)})"},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -117,13 +138,18 @@ class Project(ModelViewSet):
 
                 helper.log_activity(request, f"Project with id {project_to_update.id} updated")
 
+                logs.project_logger().info(f"{helper.get_user_info(request)} | Project | {project_to_update.id} "
+                                           f"| {project_to_update.name} updated")
+
                 return Response(get_project_details(request, project_to_update.id),
                                 status=status.HTTP_200_OK)
 
         except ValueError as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
             return Response({"msg": f"Internal Error ({str(error)})"}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
             return Response({"msg": f"Internal Error ({str(error)})"},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -147,8 +173,16 @@ class Project(ModelViewSet):
 
         helper.log_activity(request, f"Project deleted. ID: {project_id}, Name: {name}")
 
-        return Response({"msg": f"Project {name} deleted successfully"},
-                        status=status.HTTP_204_NO_CONTENT)
+        try:
+            logs.project_logger().info(f"{helper.get_user_info(request)} | Project | {project_id} "
+                                       f"| {name}")
+
+            return Response({"msg": f"Project {name} deleted successfully"},
+                            status=status.HTTP_204_NO_CONTENT)
+        except Exception as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
+            return Response({"msg": f"Internal Server Error {str(error)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @staticmethod
     def _validate_project_request(request):
@@ -196,9 +230,15 @@ class ProjectAccess(APIView):
         all_users = az_models.AzUser.objects.filter(designation__code=options.TEAM_MANAGER)
         serialized_users = serialize.SerializeUserProjectAccess(all_users, many=True).data
 
-        response = {"projects": serialized_projects, "users": serialized_users}
+        try:
+            logs.project_logger().info(f"{helper.get_user_info(request)} | Project's List for Access")
+            response = {"projects": serialized_projects, "users": serialized_users}
+            return Response(response, status=status.HTTP_200_OK)
 
-        return Response(response, status=status.HTTP_200_OK)
+        except Exception as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
+            return Response({"msg": f"Internal Server Error {str(error)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @staticmethod
     def post(request):
@@ -224,7 +264,12 @@ class ProjectAccess(APIView):
 
         try:
             new_project_access = az_models.ProjectAccess.objects.create(project=project, owner=owner)
+            helper.log_activity(f"New Project Access created. id: {new_project_access.id}", "error")
+            logs.project_logger().info(f"{helper.get_user_info(request)} | Project Access granted | "
+                                       f"{new_project_access.project.name} | "
+                                       f"{new_project_access.owner.user.get_full_name()}")
             return Response(serialize.SerializeUserProjectAccess(new_project_access),
                             status=status.HTTP_201_CREATED)
         except Exception as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
             return Response({"msg": f"Internal Error ({str(error)})"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

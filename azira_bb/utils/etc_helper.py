@@ -50,4 +50,14 @@ def log_activity(request=None, activity=None):
         log_message("Error in saving activity", "error")
         raise TypeError("Invalid user")
 
-    az_mdl.ActivityLog.objects.create(activity=activity)
+    az_mdl.ActivityLog.objects.create(activity=activity, activist=activist)
+
+
+def get_user_info(request):
+    try:
+        user_id = request.user.id
+        user_name = request.user.get_full_name()
+
+        return f"User: ({user_id})-{user_name}||"
+    except AttributeError:
+        return "Anonymous"

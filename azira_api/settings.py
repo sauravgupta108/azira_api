@@ -116,6 +116,8 @@ USE_L10N = True
 USE_TZ = True
 
 LOG_PATH = "/home/mohanu/azira/logs/azira_api.log"
+LOG_DIRECTORY = "/home/mohanu/azira/logs"
+SUPER_LOG_FILE = "/home/mohanu/azira/logs/parent.log"
 
 
 # Static files (CSS, JavaScript, Images)

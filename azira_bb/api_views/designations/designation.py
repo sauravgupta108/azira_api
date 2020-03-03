@@ -8,6 +8,7 @@ from azira_bb import models as az_model
 
 from azira_bb import api_serializers as serialize
 from azira_bb.utils import etc_helper as helper
+from azira_bb.utils import loggers as logs
 
 
 class Designation(ModelViewSet):
@@ -21,9 +22,16 @@ class Designation(ModelViewSet):
 
         if self.queryset.count() == 0:
             return Response({"msg": "No records found"}, status=status.HTTP_204_NO_CONTENT)
+        
+        try:
+            logs.designation_logger().info(f"{helper.get_user_info(request)} - Designation's List")
 
-        return Response(serialize.SerializeDesignation(self.queryset, many=True).data,
-                        status=status.HTTP_200_OK)
+            return Response(serialize.SerializeDesignation(self.queryset, many=True).data,
+                            status=status.HTTP_200_OK)
+        except Exception as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
+            return Response({"msg": f"Internal Server Error {str(error)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def retrieve(self, request, *args, **kwargs):
         if not PermissionHandler(request.user.id).is_super_user():
@@ -34,8 +42,15 @@ class Designation(ModelViewSet):
         if self.queryset.count() != 1:
             return Response({"msg": "Invalid designation ID"}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serialize.SerializeDesignation(self.queryset[0]).data,
-                        status=status.HTTP_200_OK)
+        try:
+            logs.designation_logger().info(f"{helper.get_user_info(request)} - Designation {kwargs}")
+
+            return Response(serialize.SerializeDesignation(self.queryset[0]).data,
+                            status=status.HTTP_200_OK)
+        except Exception as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
+            return Response({"msg": f"Internal Server Error {str(error)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def create(self, request, *args, **kwargs):
         validity = self._validate_designation_data(request)
@@ -46,8 +61,15 @@ class Designation(ModelViewSet):
         new_designation = az_model.Designation.objects.create(title=request.data["designation_name"])
         helper.log_activity(request, f"New Designation ({new_designation.title}) added")
 
-        return Response(serialize.SerializeDesignation(new_designation).data,
-                        status=status.HTTP_201_CREATED)
+        try:
+            logs.designation_logger().info(f"{helper.get_user_info(request)} - Designation | {new_designation.id}| "
+                                           f"{new_designation.title}| created")
+            return Response(serialize.SerializeDesignation(new_designation).data,
+                            status=status.HTTP_201_CREATED)
+        except Exception as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
+            return Response({"msg": f"Internal Server Error {str(error)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def partial_update(self, request, *args, **kwargs):
         validity = self._validate_designation_data(request)
@@ -68,8 +90,15 @@ class Designation(ModelViewSet):
 
         helper.log_activity(request, f"Designation title changed from {older_title} to {designation_to_update.title}")
 
-        return Response(serialize.SerializeDesignation(designation_to_update).data,
-                        status=status.HTTP_200_OK)
+        try:
+            logs.designation_logger().info(f"{helper.get_user_info(request)} - Designation |{designation_to_update.id}|"
+                                           f" {designation_to_update.title}| updated")
+            return Response(serialize.SerializeDesignation(designation_to_update).data,
+                            status=status.HTTP_200_OK)
+        except Exception as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
+            return Response({"msg": f"Internal Server Error {str(error)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update(self, request, *args, **kwargs):
         return self.partial_update(request, *args, **kwargs)
@@ -88,7 +117,14 @@ class Designation(ModelViewSet):
 
         helper.log_activity(request, f"Designation {designation_name} deleted")
 
-        return Response({"msg": "Record deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        try:
+            logs.designation_logger().info(f"{helper.get_user_info(request)} - Designation "
+                                           f" {designation_name} deleted")
+            return Response({"msg": "Record deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except Exception as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
+            return Response({"msg": f"Internal Server Error {str(error)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @staticmethod
     def _validate_designation_data(request):
