@@ -265,8 +265,8 @@ class ProjectAccess(APIView):
         try:
             new_project_access = az_models.ProjectAccess.objects.create(project=project, owner=owner)
             helper.log_activity(f"New Project Access created. id: {new_project_access.id}", "error")
-            logs.project_logger().info(f"{helper.get_user_info(request)} | Project Access granted | "
-                                       f"{new_project_access.project.name} | "
+            logs.project_logger().info(f"{helper.get_user_info(request)} | Project Access granted for | "
+                                       f"{new_project_access.project.name} | to |"
                                        f"{new_project_access.owner.user.get_full_name()}")
             return Response(serialize.SerializeUserProjectAccess(new_project_access),
                             status=status.HTTP_201_CREATED)
