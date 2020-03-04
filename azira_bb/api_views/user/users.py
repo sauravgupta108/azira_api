@@ -10,6 +10,7 @@ from azira_bb import models as az_models
 from azira_bb import api_serializers as serialize
 from azira_bb.api_views import PermissionHandler
 from azira_bb.utils import etc_helper as helper
+from azira_bb.utils import loggers as logs
 
 
 class Users(ModelViewSet):
@@ -24,8 +25,14 @@ class Users(ModelViewSet):
         if self.queryset.count() == 0:
             return Response({"msg": "No records found"}, status=status.HTTP_204_NO_CONTENT)
 
-        return Response(serialize.SerializeAzUser(self.queryset, many=True),
-                        status=status.HTTP_200_OK)
+        try:
+            logs.user_logger().info(f"{helper.get_user_info(request)} | User's list")
+            return Response(serialize.SerializeAzUser(self.queryset, many=True),
+                            status=status.HTTP_200_OK)
+        except Exception as error:
+            logs.super_logger().error("Internal Error", exc_info=True)
+            return Response({"msg": f"Internal Server Error {str(error)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def retrieve(self, request, *args, **kwargs):
         if not PermissionHandler(request.user.id).is_super_user():
@@ -35,8 +42,16 @@ class Users(ModelViewSet):
 
         if self.queryset.count() != 1:
             return Response({"msg": "Invalid user ID"}, status=status.HTTP_400_BAD_REQUEST)
+        user = self.queryset[0]
 
-        return Response(serialize.SerializeAzUser(self.queryset[0]), status=status.HTTP_200_OK)
+        try:
+            logs.user_logger().info(f"{helper.get_user_info(request)} | User {user.id} | {user.get_full_name()} | "
+                                    f"viewed")
+            return Response(serialize.SerializeAzUser(self.queryset[0]), status=status.HTTP_200_OK)
+        except Exception as error:
+            logs.super_logger().error("Internal Error", exc_info=True)
+            return Response({"msg": f"Internal Server Error {str(error)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def create(self, request, *args, **kwargs):
         request_validity = self._validate_user_request(request)
@@ -70,9 +85,12 @@ class Users(ModelViewSet):
                 helper.log_activity(request, f"New user created. ID: {new_az_user.id}, "
                                              f"Name: {new_az_user.user.get_full_name()}")
 
+                logs.user_logger().info(f"{helper.get_user_info(request)} | New user {new_az_user.id} | "
+                                        f"{new_az_user.user.get_full_name()} | created")
                 return Response(serialize.SerializeAzUser(new_az_user), status=status.HTTP_201_CREATED)
 
         except Exception as error:
+            logs.super_logger().error("Internal Error", exc_info=True)
             return Response({"msg": f"Internal Error {str(error)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def partial_update(self, request, *args, **kwargs):
@@ -96,14 +114,17 @@ class Users(ModelViewSet):
                 user_to_update.title = request.data["title"]
                 user_to_update = self._set_optional_details(request, user_to_update)
 
-                user_to_update.save()
-
                 helper.log_activity(request, f"User updated. ID: {user_to_update.id}, "
                                              f"Name: {user_to_update.user.get_full_name()}")
+                logs.user_logger().info(f"{helper.get_user_info(request)} | New user {user_to_update.id} | "
+                                        f"{user_to_update.user.get_full_name()} | created")
+
+                user_to_update.save()
 
                 return Response(serialize.SerializeAzUser(user_to_update), status=status.HTTP_200_OK)
 
         except Exception as error:
+            logs.super_logger().error("Internal Error", exc_info=True)
             return Response({"msg": f"Internal Error {str(error)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update(self, request, *args, **kwargs):
@@ -132,7 +153,12 @@ class Users(ModelViewSet):
         helper.log_activity(request, f"User deleted. ID: {user_id}, "
                                      f"Name: {user_name}")
 
-        return Response({"msg": f"Deleted User with ID <{user_id}>"}, status=status.HTTP_204_NO_CONTENT)
+        try:
+            logs.user_logger().info(f"{helper.get_user_info(request)} | User {user_id} | {user_name} | deleted")
+            return Response({"msg": f"Deleted User with ID <{user_id}>"}, status=status.HTTP_204_NO_CONTENT)
+        except Exception as error:
+            logs.super_logger().error("Internal Error", exc_info=True)
+            return Response({"msg": f"Internal Error {str(error)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @staticmethod
     def _validate_user_request(request):

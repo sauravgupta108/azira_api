@@ -8,6 +8,8 @@ from django.db import transaction
 from azira_bb import models as az_models
 from azira_bb.api_views import PermissionHandler
 from azira_bb.utils import options
+from azira_bb.utils import etc_helper as helper
+from azira_bb.utils import loggers as logs
 from azira_bb.api_serializers import UserSerializerMicro
 from azira_bb.api_serializers import SerializeTeamMicro, SerializeTeamDetailed
 from azira_bb.api_serializers import SerializeSprintMicro, SerializeProjectMicro
@@ -21,7 +23,7 @@ class NewTeam(APIView):
         if "project_id" not in request.query_params:
             return Response({"msg": "Project id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not PermissionHandler(request.user.id).can_create_or_modify_team(request.query_params["project_id"]):
+        if not PermissionHandler(request.user.id).can_create_team(request.query_params["project_id"]):
             return Response({"msg": "Not Authorized"}, status=status.HTTP_403_FORBIDDEN)
 
         team_members = az_models.AzUser.objects.filter(designation__code=options.TEAM_MEMBER
@@ -48,22 +50,29 @@ class TeamSet(ModelViewSet, PermissionHandler):
     def list(self, request, *args, **kwargs):
         permission_obj = PermissionHandler(request.user.id)
 
-        if permission_obj.is_super_user():
-            all_teams = SerializeTeamMicro(self.queryset, many=True).data
-            return Response(all_teams, status=status.HTTP_200_OK)
+        try:
+            logs.team_logger().info(f"{helper.get_user_info(request)} - Team's List")
 
-        elif permission_obj.user.designation.code == options.TEAM_MANAGER:
-            teams = self.queryset.filter(manager=permission_obj.user)
-            all_teams_owned = SerializeTeamMicro(teams, many=True).data
-            return Response(all_teams_owned, status=status.HTTP_200_OK)
+            if permission_obj.is_super_user():
+                all_teams = SerializeTeamMicro(self.queryset, many=True).data
+                return Response(all_teams, status=status.HTTP_200_OK)
 
-        elif permission_obj.user.designation.code == options.TEAM_LEAD:
-            teams = self.queryset.filter(lead=permission_obj.user)
-            teams_owned = SerializeTeamMicro(teams, many=True).data
-            return Response(teams_owned, status=status.HTTP_200_OK)
+            elif permission_obj.user.designation.code == options.TEAM_MANAGER:
+                teams = self.queryset.filter(manager=permission_obj.user)
+                all_teams_owned = SerializeTeamMicro(teams, many=True).data
+                return Response(all_teams_owned, status=status.HTTP_200_OK)
 
-        else:
-            return Response({"msg": "Not Authorized"}, status=status.HTTP_403_FORBIDDEN)
+            elif permission_obj.user.designation.code == options.TEAM_LEAD:
+                teams = self.queryset.filter(lead=permission_obj.user)
+                teams_owned = SerializeTeamMicro(teams, many=True).data
+                return Response(teams_owned, status=status.HTTP_200_OK)
+
+            else:
+                return Response({"msg": "Not Authorized"}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
+            return Response({"msg": f"Internal Server Error {str(error)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def retrieve(self, request, *args, **kwargs):
 
@@ -74,10 +83,17 @@ class TeamSet(ModelViewSet, PermissionHandler):
 
         team = self.queryset[0]
 
-        if PermissionHandler(request.user.id).can_view_team(team.id):
-            return Response(SerializeTeamDetailed(team).data, status=status.HTTP_200_OK)
-        else:
-            return Response({"msg": "Not Authorized"}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            if PermissionHandler(request.user.id).can_view_team(team.id):
+                logs.team_logger().info(f"{helper.get_user_info(request)} - Team | {team.id} | {team.name}")
+                return Response(SerializeTeamDetailed(team).data, status=status.HTTP_200_OK)
+            else:
+                logs.team_logger().info(f"{helper.get_user_info(request)} - Unauthorized access to team")
+                return Response({"msg": "Not Authorized"}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
+            return Response({"msg": f"Internal Server Error {str(error)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def create(self, request, *args, **kwargs):
         if "project_id" not in request.data:
@@ -158,8 +174,12 @@ class TeamSet(ModelViewSet, PermissionHandler):
                 new_team.members.add(*team_members)
                 new_team.save()
 
+                helper.log_activity(request, f"New Team | {new_team.id} | {new_team.name} | created")
+                logs.team_logger().info(f"{helper.get_user_info(request)}: New Team | {new_team.id} | "
+                                        f"{new_team.name} | created")
                 return Response(SerializeTeamDetailed(new_team).data, status=status.HTTP_201_CREATED)
         except Exception as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
             return Response({"msg": f"Internal Error {str(error)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update(self, request, *args, **kwargs):
@@ -180,20 +200,35 @@ class TeamSet(ModelViewSet, PermissionHandler):
             if "team_name" in request.data:
                 if request.data["team_name"].strip() == "":
                     return Response({"msg": "Team Name can not be blank"}, status=status.HTTP_400_BAD_REQUEST)
+                older_name = team.name
                 team.name = request.data["team_name"]
                 team.save()
+
+                helper.log_activity(request, f"Team name changed from {older_name} to {team.name}")
+                logs.team_logger().info(f"{helper.get_user_info(request)}: Team {team.id} | {older_name} | "
+                                        f"name changed to {team.name}")
 
             if "team_lead" in request.data:
                 try:
                     new_lead = az_models.AzUser.objects.get(id=int(request.data["team_lead"]),
                                                             designation__code=options.TEAM_LEAD)
+                    older_lead = team.lead.user.get_full_name()
                     team.lead = new_lead
                     team.save()
+                    new_lead_name = team.lead.user.get_full_name()
+
+                    helper.log_activity(request, f"Team lead changed from {older_lead} to {new_lead_name} of team "
+                                                 f"{team.name}")
+                    logs.team_logger().info(f"{helper.get_user_info(request)}: Team {team.id} | {team.name} | "
+                                            f"lead changed to {new_lead_name} from {older_lead}")
+
                 except (ValueError, az_models.AzUser.DoesNotExist, az_models.AzUser.MultipleObjectsReturned):
+                    logs.super_logger().error(f"Invalid Team Lead", exc_info=True)
                     return Response({"msg": "Invalid Team Lead"}, status=status.HTTP_400_BAD_REQUEST)
 
             return Response(SerializeTeamDetailed(team).data, status=status.HTTP_200_OK)
         except Exception as error:
+            logs.super_logger().error(f"Internal Error", exc_info=True)
             return Response({"msg": f"Internal Error {str(error)}"},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
