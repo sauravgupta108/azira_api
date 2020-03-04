@@ -31,7 +31,6 @@ class AziraLogin(APIView):
             az_user = az_model.AzUser.objects.get(user_id=user.id)
         except (az_model.AzUser.DoesNotExist, az_model.AzUser.MultipleObjectsReturned):
             logs.super_logger().error(f"Problem with user of username <{username}>", exc_info=True)
-            helper.log_message(f"Problem with user of username <{username}>", log_type="error")
             return Response({"msg": "Internal Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if not user_token:
